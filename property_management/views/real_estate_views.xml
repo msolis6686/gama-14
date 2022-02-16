@@ -98,6 +98,7 @@
                 <form string="Contract">
                     <header>
                         <button name="action_confirm" attrs="{'invisible': [('state','in', ['confirm','active','inactive'])]}" type="object" string="Confirm" class="oe_highlight"/>
+                        <button name="action_refinance" attrs="{'invisible': [('state','in', ['draft','closed'])]}" type="object" string="Refinanciar" class="oe_highlight"/>
                         <button name="action_active" attrs="{'invisible': [('state','in', ['draft','active','inactive'])]}" type="object" string="Active" class="oe_highlight"/>
                         <button name="action_inactive"
                                 attrs="{'invisible': [('state','in', ['draft','confirm','inactive'])]}"
@@ -147,17 +148,23 @@
                                         <field name="token_money_product_id" attrs="{'readonly': [('state','in', ['confirm','active','inactive'])]}"/>
                                         <field name="down_payment_product_id" attrs="{'readonly': [('state','in', ['confirm','active','inactive'])]}"/>
                                     </group>
-                                    <group string="Payment Plan" style="width:400px; margin-left:200px;" attrs="{'invisible':[('contract_type', '!=', 'sell')]}">
+                                    <group string="Payment Plan" style="width:400px; margin-left:200px;" attrs="{'invisible':[('contract_type', 'not in', ['sell','canon'])]}">
 
                                         <field name="payment_plan_type" readonly="0" placeholder="Plan type" attrs="{'readonly': [('state','in', ['confirm','active','inactive'])]}"/>
+                                        <field name="currency" attrs="{'readonly': [('state','in', ['confirm','active','inactive'])]}"/>
                                         <field name="total_payment_date" string="Select payment due date" attrs="{'invisible':[('payment_plan_type', '!=', 'lump_sum')],'readonly': [('state','in', ['confirm','active','inactive'])]}"/>
                                         <field name="discount_hx" string="Discount (Lumpsum)" attrs="{'readonly': [('state','in', ['confirm','active','inactive'])]}"/>
+                                        <field name="discount_reason" attrs="{'readonly': [('state','in', ['confirm','active','inactive'])], 'invisible':[('discount_hx', '=', 0)]}"/>
                                         <field name="amt_after_disc" readonly="1" force_save="1" string="Amount after discount" attrs="{'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
                                         <field name="down_payment_type" string="Down payment type" attrs="{'invisible':[('payment_plan_type', '!=', 'install_down')],'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
                                         <field name="down_payment_amt" string="Insert down payment" attrs="{'invisible':[('payment_plan_type', '!=', 'install_down')],'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
                                         <field name="down_payment" string="Down payment Rs." readonly="1" force_save="1" attrs="{'invisible':[('payment_plan_type', '!=', 'install_down')],'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
                                         <field name="down_payment_date" string="Down payment due date" attrs="{'invisible':[('payment_plan_type', '!=', 'install_down')],'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
                                         <field name="total_without_down_payment" readonly="1" force_save="1" string="Installments Balance" attrs="{'invisible':[('payment_plan_type', '!=', 'install_down')],'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
+                                        <!-- AGREGADO POR LA FOCA -->
+                                        <field name="interest" force_save="1" attrs="{'invisible':[('payment_plan_type', '!=', 'install_down')],'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
+                                        <field name="icc" force_save="1" attrs="{'invisible':[('payment_plan_type', '=', 'install_down'),('currency','!=', 19)],'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
+                                        <!-- AGREGADO POR LA FOCA -->
                                         <field name="frequency" string="Installments frequency" attrs="{'invisible': [('payment_plan_type', 'not in', ['install_down', 'install'])],'readonly': [('state','in', ['confirm','active','inactive'])]}"/>
                                         <field name="total_installments" string="Total installments" attrs="{'invisible': [('payment_plan_type', 'not in', ['install_down', 'install'])],'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
                                         <field name="first_installment_date" string="First installment date"
@@ -205,6 +212,15 @@
                                     </tree>
                                 </field>
                                 <button style="float:right" name="action_balance_installments" string="Balance Installments" type="object" class="oe_highlight"/>
+                            </page>
+                            <page string="Historico de Propiedad">
+                                <field name="property_historico" widget="many2many">
+                                    <tree>
+                                        <field name="reg_date"/>
+                                        <field name="operation"/>
+                                        <field name="description"/>
+                                    </tree>
+                                </field>
                             </page>
                         </notebook>
                     </sheet>
@@ -929,6 +945,14 @@
                                 <div class="o_address_format">
                                     <field name="property_value" class="o_address_street"/>
                                 </div>
+                                <!-- AGREGADO POR LA FOCA -->
+                                <span class="o_form_label o_td_label" name="address_name">
+                                    <b>Divisa</b>
+                                </span>
+                                <div class="o_address_format">
+                                    <field name="currency_id" class="o_address_street"/>
+                                </div>
+                                <!-- AGREGADO POR LA FOCA -->
                                 <span class="o_form_label o_td_label" name="address_name">
                                     <b>Status</b>
                                 </span>
@@ -1180,6 +1204,49 @@
             <field name="act_window_id" ref="action_contacts"/>
         </record>
 
+        <!-- AGREGADO POR LA FOCA -->
+        <!-- Vista Form de property icc -->
+        <record id="view_property_icc_form" model="ir.ui.view">
+            <field name="name">view.property.icc.form</field>
+            <field name="model">real.estate.property.icc</field>
+            <field name="priority" eval="1"/>
+            <field name="arch" type="xml">
+                <form string="Porcentaje de ICC">
+                    <sheet>
+                        <group string="Indice de Costo de Construccion">
+                            <field name="icc_date"/>
+                            <field name="icc_percent"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Vista tree de property icc -->
+        <record id="view_property_icc_tree" model="ir.ui.view">
+            <field name="name">view.property.icc.tree</field>
+            <field name="model">real.estate.property.icc</field>
+            <field name="priority" eval="1"/>
+            <field name="arch" type="xml">
+                <tree string="Porcentaje de ICC">
+                    <field name="icc_date"/>
+                    <field name="icc_percent"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="action_tazas" model="ir.actions.act_window">
+            <field name="name">Tazas</field>
+            <field name="res_model">res.currency</field>
+            <field name="view_mode">tree,kanban,form</field>
+        </record>
+
+        <record id="action_icc" model="ir.actions.act_window">
+            <field name="name">ICC</field>
+            <field name="res_model">real.estate.property.icc</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+        <!-- AGREGADO POR LA FOCA -->
 
 
 
@@ -1232,6 +1299,23 @@
                   name="Contracts"
                   parent="real_estate_contracts_root"
                   action="action_contracts"
+        />
+
+        <menuitem id="real_estate_contracts_root"
+                  name="Contracts"
+                  parent="real_estate_root"
+        />
+
+        <menuitem id="real_estate_tazas"
+                  name="Tazas"
+                  parent="real_estate_root"
+                  action="action_tazas"
+        />
+
+        <menuitem id="real_estate_icc"
+                  name="ICC"
+                  parent="real_estate_root"
+                  action="action_icc"
         />
 
         <!-- -->

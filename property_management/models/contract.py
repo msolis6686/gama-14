@@ -28,7 +28,7 @@ class contract(models.Model):
     contract_partner_phone = fields.Char('Phone', related='contract_partner_id.phone')
     contract_partner_mobile = fields.Char('Mobile', related='contract_partner_id.mobile')
     contract_partner_cnic = fields.Char('CNIC', related='contract_partner_id.cnic_no')
-    contract_type = fields.Selection([('buy', 'Buy Back'), ('sell','Sell')])
+    contract_type = fields.Selection([('buy', 'Buy Back'), ('sell','Sell'), ('canon','Canon Locativo')])
     # contract_type = fields.Selection([('sell','Sell')])
 
     kin_name = fields.Char(string='Next of kin')
@@ -38,6 +38,7 @@ class contract(models.Model):
     payment_plan_type = fields.Selection([('lump_sum', 'Lump sum'),
                                           ('install_down', 'Installment + Down Payment'),
                                           ('install', 'Installment'),])
+    currency = fields.Many2one('res.currency', string='Moneda')#Agregado por la foca
     state = fields.Selection([
         ('draft', 'Draft'),
         ('confirm', 'Confirm'),
@@ -74,6 +75,7 @@ class contract(models.Model):
     #                                   ('payback_property_adjust','Adjust payment in other properties'), ('payback_payment_and_property','Partial payment and partial adjustment in property')])
     down_payment_type = fields.Selection([('lumpsum', 'Lumpsum'),('percentage', 'Percentage')])
     discount_hx = fields.Float('discount')
+    discount_reason = fields.Text(string='Razon del Descuento')#AGREGADO POR LA FOCA
     amt_after_disc = fields.Float('Amount after discount',store=True, compute='_compute_amt_after_disc')
     buy_back_bill_due_date = fields.Date()
     contract_active = fields.Boolean(default=True)
@@ -89,6 +91,35 @@ class contract(models.Model):
     total_without_down_payment = fields.Float(string='Installments Balance')
     resale_value = fields.Float()
     contract_date = fields.Date(default=fields.Date.context_today)
+    interest = fields.Float(string='Interes')#AGREGADO POR LA FOCA
+    icc = fields.Float(string='ICC', help='Indice de Costo de Construccion')#AGREGADO POR LA FOCA
+    property_historico = fields.Many2many('real.estate.property.historico', string="Hisotrico de Propiedad")
+
+    """ @api.onchange('interest')
+    def calc_interest(self):
+        print('INTERES')
+        temp_val = self.total_without_down_payment + self.total_without_down_payment*self.interest/100
+        self.total_without_down_payment = temp_val
+
+    @api.onchange('icc')
+    def calc_icc(self):
+        print('ICC')
+        if self.currency.id == 19:
+            temp_val = self.total_without_down_payment + self.total_without_down_payment*self.icc/100
+            self.total_without_down_payment = temp_val """
+    
+    @api.onchange('total_installments')
+    def calc_total(self):
+        print(self.total_installments)
+        aumentos = round(self.total_installments/6,2)
+        temp = aumentos * self.interest * self.total_without_down_payment / 100
+        temp_2 = temp + self.total_without_down_payment 
+        self.total_without_down_payment = temp_2
+        if self.currency.id == 19:
+            temp_val = self.total_without_down_payment + self.total_without_down_payment*self.icc/100
+            self.total_without_down_payment = temp_val
+            
+
 
     @api.constrains('total_installments')
     def _check_total_installments_value(self):
@@ -110,6 +141,11 @@ class contract(models.Model):
         if temp != self.amt_after_disc:
             raise UserError('Sum of installments must be equal')
 
+    #AGREGADO POR LA FOCA
+    def action_refinance(self):
+        self.state = 'draft'
+    #AGREGADO POR LA FOCA
+
     def action_confirm(self):
         self.state = 'confirm'
 
@@ -126,7 +162,7 @@ class contract(models.Model):
             'view_type': 'form',
             'view_mode': 'form',
             'res_model': 'select.property.status',
-            'view_id': self.env.ref('Property management.select_property_status_view_form').id,
+            'view_id': self.env.ref('property_management.select_property_status_view_form').id,
             'target': 'new',
             'context': {
                 'default_property_id': self.property_id.id,
@@ -158,7 +194,7 @@ class contract(models.Model):
             res = {}
             res['domain'] = {'property_id': [('id', 'in', property_list)]}
             return res
-        if self.contract_type == 'sell':
+        if self.contract_type == 'sell' or self.contract_type == 'canon':
             self.check_buyback_selection = False
 
     @api.onchange('property_value')
@@ -289,6 +325,7 @@ class contract(models.Model):
         if self.payment_plan_type == 'install_down':
             amount_residual = (self.amt_after_disc - self.down_payment)
             single_installment = (amount_residual / self.total_installments)
+            single_installment = single_installment + single_installment*self.interest/100
             single_installment = round(single_installment,2)
             next_installment = self.first_installment_date
             var = self.total_installments-1
@@ -306,9 +343,14 @@ class contract(models.Model):
             }
             self.installment_id.sudo().create(down_vals)
 
+            counter = 1
             # Installments generation
             if self.frequency == 'monthly':
                 for i in range(self.total_installments-1):
+                    if counter == 7:
+                        counter = 1
+                        single_installment = single_installment + single_installment*self.interest/100
+                            
                     vals = {
                         'installment_no': i+1,
                         'amount': single_installment,
@@ -319,14 +361,18 @@ class contract(models.Model):
                         'property_id': self.property_id.id,
                     }
                     next_installment = next_installment + relativedelta.relativedelta(months=1)
+                    counter = counter + 1
                     try:
                         self.installment_id.sudo().create(vals)
                     except AccessError:
                         _logger.warning("Access error")
                 # next_installment = next_installment + relativedelta.relativedelta(months=1)
+                if counter == 7:
+                    single_installment = single_installment + single_installment*self.interest/100
                 last_installment_vals = {
                     'installment_no': self.total_installments,
-                    'amount': last_installment,
+                    #'amount': last_installment,
+                    'amount': single_installment,
                     'due_date': next_installment,
                     'frequency': self.frequency,
                     'contract_id': self.id,
@@ -372,7 +418,7 @@ class contract(models.Model):
         self.property_id.update({
             'status': 'booked',
         })
-        self.generate_installment_plan = True
+        #self.generate_installment_plan = True
 
         if self.payment_plan_type == 'install':
             single_installment = self.amt_after_disc / self.total_installments
