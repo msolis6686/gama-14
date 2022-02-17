@@ -113,6 +113,15 @@ class contract(models.Model):
             temp_val = self.total_without_down_payment + self.total_without_down_payment*self.icc/100
             self.total_without_down_payment = temp_val """
     
+    @api.onchange('currency')
+    def calc_icc(self):
+        if self.currency.id == 19:
+            icc = self.env['real.estate.property.icc'].search([],order="id desc", limit=1)
+            if icc:
+                self.icc = icc.icc_percent
+        else:
+            self.icc = 0
+    
     @api.onchange('bienes_cambio_aceptado')
     def calc_bienes_de_cambio(self):
         if self.bienes_cambio_aceptado:
