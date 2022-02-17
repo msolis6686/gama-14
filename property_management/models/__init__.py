@@ -11,3 +11,5 @@ from . import installment_plan
 from . import contract
 from . import property_icc
 from . import property_historico
+from . import cuenta_corriente
+from . import contract_bienes_cambio
