@@ -116,7 +116,7 @@ class contract(models.Model):
     @api.onchange('currency')
     def calc_icc(self):
         if self.currency.id == 19:
-            icc = self.env['real.estate.property.icc'].search([],order="id desc", limit=1)
+            icc = self.env['real.estate.property.icc'].search([],order="icc_date desc", limit=1)
             if icc:
                 self.icc = icc.icc_percent
         else:
