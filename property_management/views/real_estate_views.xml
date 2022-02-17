@@ -153,7 +153,8 @@
                                         <field name="payment_plan_type" readonly="0" placeholder="Plan type" attrs="{'readonly': [('state','in', ['confirm','active','inactive'])]}"/>
                                         <field name="currency" attrs="{'readonly': [('state','in', ['confirm','active','inactive'])]}"/>
                                         <field name="total_payment_date" string="Select payment due date" attrs="{'invisible':[('payment_plan_type', '!=', 'lump_sum')],'readonly': [('state','in', ['confirm','active','inactive'])]}"/>
-                                        <field name="discount_hx" string="Discount (Lumpsum)" attrs="{'readonly': [('state','in', ['confirm','active','inactive'])]}"/>
+                                        <!-- <field name="discount_hx" string="Discount (Lumpsum)" attrs="{'readonly': [('state','in', ['confirm','active','inactive'])]}"/> -->
+                                        <field name="discount_hx" string="Discount (Lumpsum)" readonly="1" force_save="1"/>
                                         <field name="discount_reason" attrs="{'readonly': [('state','in', ['confirm','active','inactive'])], 'invisible':[('discount_hx', '=', 0)]}"/>
                                         <field name="amt_after_disc" readonly="1" force_save="1" string="Amount after discount" attrs="{'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
                                         <field name="down_payment_type" string="Down payment type" attrs="{'invisible':[('payment_plan_type', '!=', 'install_down')],'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
@@ -190,6 +191,17 @@
                                     </group>
                                 </group>
                             </page>
+                            <page string="Bienes de Cambio Aceptados">
+                                <field name="bienes_cambio_aceptado" context="{'form_view_ref':'real.estate.bienes.cambio.view_bienes_cambio_aceptados_form'}">
+                                    <tree>
+                                        <field name="date_received"/>
+                                        <field name="product_id"/>
+                                        <field name="description"/>
+                                        <field name="cantidad"/>
+                                        <field name="precio"/>
+                                    </tree>
+                                </field>
+                            </page>
                             <page string="Installments">
                                 <!--                                <field name="contract_type" invisible="1" force_save="1"/>-->
                                 <!--                                <header>-->
@@ -212,6 +224,7 @@
                                     </tree>
                                 </field>
                                 <button style="float:right" name="action_balance_installments" string="Balance Installments" type="object" class="oe_highlight"/>
+                                <button style="float:right" name="action_delete_installments" string="Borrar Cuotas" type="object" class="oe_highlight btn-danger" attrs="{'invisible':[('generate_installment_plan', '=', False)]}"/>
                             </page>
                             <page string="Historico de Propiedad">
                                 <field name="property_historico" widget="many2many">
@@ -222,11 +235,42 @@
                                     </tree>
                                 </field>
                             </page>
+                            <page string="Detalle de Cuenta Corriente">
+                                <field name="cuenta_corriente" widget="many2many">
+                                    <tree>
+                                        <field name="fecha"/>
+                                        <field name="numero_pago"/>
+                                        <field name="monto"/>
+                                        <field name="saldo_total"/>
+                                    </tree>
+                                </field>
+                            </page>
                         </notebook>
                     </sheet>
                 </form>
             </field>
         </record>
+
+        <record id="view_bienes_cambio_aceptados_form" model="ir.ui.view">
+            <field name="name">view.bienes.cambio.aceptados.form</field>
+            <field name="model">real.estate.bienes.cambio</field>
+            <field name="priority">1</field>
+            <field name="arch" type="xml">
+                <form string="Agregar Bien de Cambio">
+                    <sheet>
+                        <group string="Agregar Bien de Cambio">
+                            <field name="product_id"/>
+                            <field name="description"/>
+                            <field name="date_received" invisible="1"/>
+                            <field name="cantidad"/>
+                            <field name="precio"/>
+                        </group>
+                    </sheet>
+                </form>
+            <!-- and so on -->
+            </field>
+        </record>
+
 
 
         <!-- invoice view -->
@@ -1061,7 +1105,7 @@
             <t t-call="web.html_container">
                 <t t-call="web.external_layout">
                     <h3 class="col-auto mw-100 mb-6">Installment Plan</h3>
-                    <t t-call="ASE_real_estate.report_contract_document"/>
+                    <t t-call="property_management.report_contract_document"/>
                 </t>
             </t>
         </template>
@@ -1071,7 +1115,7 @@
                 string="Installment plan"
                 model="real.estate.contract"
                 report_type="qweb-pdf"
-                name="ASE_real_estate.report_contract_display"
+                name="property_management.report_contract_display"
                 file="ASE_real_estate.report_contract">
 
         </report>
@@ -1263,6 +1307,7 @@
         <!-- Side menu -->
         <menuitem id="real_estate_root"
                   name="Real Estate"
+                  web_icon="property_management,static/description/icon.png"
                   sequence="10"/>
 
         <menuitem id="real_estate_project_root"

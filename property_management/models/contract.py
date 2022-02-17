@@ -75,7 +75,7 @@ class contract(models.Model):
     #                                   ('payback_property_adjust','Adjust payment in other properties'), ('payback_payment_and_property','Partial payment and partial adjustment in property')])
     down_payment_type = fields.Selection([('lumpsum', 'Lumpsum'),('percentage', 'Percentage')])
     discount_hx = fields.Float('discount')
-    discount_reason = fields.Text(string='Razon del Descuento')#AGREGADO POR LA FOCA
+    discount_reason = fields.Text(string='Razon del Descuento', default='Se recibieron bienes como parte del pago. Ver mas en bienes de cambio aceptados.')#AGREGADO POR LA FOCA
     amt_after_disc = fields.Float('Amount after discount',store=True, compute='_compute_amt_after_disc')
     buy_back_bill_due_date = fields.Date()
     contract_active = fields.Boolean(default=True)
@@ -94,6 +94,11 @@ class contract(models.Model):
     interest = fields.Float(string='Interes')#AGREGADO POR LA FOCA
     icc = fields.Float(string='ICC', help='Indice de Costo de Construccion')#AGREGADO POR LA FOCA
     property_historico = fields.Many2many('real.estate.property.historico', string="Hisotrico de Propiedad")
+    cuenta_corriente = fields.Many2many('real.estate.cuenta.corriente', string="Cuenta Corriente")
+    bienes_cambio_aceptado = fields.One2many(
+        comodel_name='real.estate.bienes.cambio',
+        inverse_name='contract_id',
+        string='Productos')
 
     """ @api.onchange('interest')
     def calc_interest(self):
@@ -107,6 +112,18 @@ class contract(models.Model):
         if self.currency.id == 19:
             temp_val = self.total_without_down_payment + self.total_without_down_payment*self.icc/100
             self.total_without_down_payment = temp_val """
+    
+    @api.onchange('bienes_cambio_aceptado')
+    def calc_bienes_de_cambio(self):
+        if self.bienes_cambio_aceptado:
+            temp = 0
+            for x in self.bienes_cambio_aceptado:
+                temp = temp + x.precio
+            self.discount_hx = temp
+        else:
+            self.discount_hx = 0
+        
+            
     
     @api.onchange('total_installments')
     def calc_total(self):
@@ -418,7 +435,7 @@ class contract(models.Model):
         self.property_id.update({
             'status': 'booked',
         })
-        #self.generate_installment_plan = True
+        self.generate_installment_plan = True
 
         if self.payment_plan_type == 'install':
             single_installment = self.amt_after_disc / self.total_installments
@@ -569,7 +586,12 @@ class contract(models.Model):
         else:
             _logger.warning("Access error")
         return value
-
+    
+    def action_delete_installments(self):
+        installments = self.env['real.estate.installment'].search([('contract_id', '=', self.id)])
+        for installment in installments:
+            installment.unlink()
+        self.generate_installment_plan = False
 
 
 class SelectPropertyStatus(models.TransientModel):
