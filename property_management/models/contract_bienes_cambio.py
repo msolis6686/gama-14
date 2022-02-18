@@ -30,6 +30,4 @@ class RealEstateBienesCambio(models.Model):
     )
 
     precio = fields.Float('precio')
-    ##################################################
-    # ONCHANGES
-    ##################################################
+    

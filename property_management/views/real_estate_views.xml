@@ -164,7 +164,7 @@
                                         <field name="total_without_down_payment" readonly="1" force_save="1" string="Installments Balance" attrs="{'invisible':[('payment_plan_type', '!=', 'install_down')],'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
                                         <!-- AGREGADO POR LA FOCA -->
                                         <field name="interest" force_save="1" attrs="{'invisible':[('payment_plan_type', '!=', 'install_down')],'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
-                                        <field name="icc" force_save="1" attrs="{'invisible':[('payment_plan_type', '=', 'install_down'),('currency','!=', 19)],'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
+                                        <field name="icc" force_save="1" attrs="{'invisible':['|',('payment_plan_type', '!=', 'install_down'),('currency','!=',19)],'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
                                         <!-- AGREGADO POR LA FOCA -->
                                         <field name="frequency" string="Installments frequency" attrs="{'invisible': [('payment_plan_type', 'not in', ['install_down', 'install'])],'readonly': [('state','in', ['confirm','active','inactive'])]}"/>
                                         <field name="total_installments" string="Total installments" attrs="{'invisible': [('payment_plan_type', 'not in', ['install_down', 'install'])],'readonly':[('state','in', ['confirm','active','inactive'])]}"/>
@@ -225,6 +225,22 @@
                                 </field>
                                 <button style="float:right" name="action_balance_installments" string="Balance Installments" type="object" class="oe_highlight"/>
                                 <button style="float:right" name="action_delete_installments" string="Borrar Cuotas" type="object" class="oe_highlight btn-danger" attrs="{'invisible':[('generate_installment_plan', '=', False)]}"/>
+                            </page>
+                            <page string="Pagos">
+                                <field name="contract_payments" context="{'default_partner_id': contract_partner_id}">
+                                    <tree>
+                                        <field name="date" />
+                                        <field name="name"/>
+                                        <field name="journal_id" />
+                                        <field name="payment_method_id"/>
+                                        <field name="payment_option"/>
+                                        <field name="payment_reference"/>
+                                        <field name="partner_id"/>
+                                        <field name="amount"/>
+                                        <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'posted'"/>
+                                        <field name="currency_id"/>
+                                    </tree>
+                                </field>
                             </page>
                             <page string="Historico de Propiedad">
                                 <field name="property_historico" widget="many2many">
@@ -1249,6 +1265,45 @@
         </record>
 
         <!-- AGREGADO POR LA FOCA -->
+
+        <!-- Vista Form de property Interest -->
+
+        <record id="view_property_interest_form" model="ir.ui.view">
+            <field name="name">view.property.interest.form</field>
+            <field name="model">real.estate.property.interest</field>
+            <field name="priority" eval="1"/>
+            <field name="arch" type="xml">
+                <form string="Crear Interes">
+                    <sheet>
+                        <group string="Creacion de Interes">
+                            <field name="interest_date"/>
+                            <field name="interest_monthly_type"/>
+                            <field name="interest_rate"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Vista Form de property Interest -->
+
+        <!-- Vista Tree de property Interest -->
+
+        <record id="view_property_interest_tree" model="ir.ui.view">
+            <field name="name">view.property.interest.tree</field>
+            <field name="model">real.estate.property.interest</field>
+            <field name="priority" eval="1"/>
+            <field name="arch" type="xml">
+                <tree string="Crear Interes">
+                    <field name="interest_date"/>
+                    <field name="interest_monthly_type"/>
+                    <field name="interest_rate"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- Vista Tree de property Interest -->
+
         <!-- Vista Form de property icc -->
         <record id="view_property_icc_form" model="ir.ui.view">
             <field name="name">view.property.icc.form</field>
@@ -1288,6 +1343,12 @@
         <record id="action_icc" model="ir.actions.act_window">
             <field name="name">ICC</field>
             <field name="res_model">real.estate.property.icc</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <record id="action_interest" model="ir.actions.act_window">
+            <field name="name">Intereses</field>
+            <field name="res_model">real.estate.property.interest</field>
             <field name="view_mode">tree,form</field>
         </record>
         <!-- AGREGADO POR LA FOCA -->
@@ -1351,16 +1412,32 @@
                   parent="real_estate_root"
         />
 
+        <!-- <menuitem id="real_estate_contracts_config"
+                  name="Configuracion"
+                  parent="real_estate_root"
+        /> -->
+        
+        <menuitem id="real_estate_config"
+                  name="Configuracion"
+                  parent="real_estate_root"
+        />
+
         <menuitem id="real_estate_tazas"
                   name="Tazas"
-                  parent="real_estate_root"
+                  parent="real_estate_config"
                   action="action_tazas"
         />
 
         <menuitem id="real_estate_icc"
                   name="ICC"
-                  parent="real_estate_root"
+                  parent="real_estate_config"
                   action="action_icc"
+        />
+
+        <menuitem id="real_estate_intereses"
+                  name="Intereses"
+                  parent="real_estate_config"
+                  action="action_interest"
         />
 
         <!-- -->
