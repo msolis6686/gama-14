@@ -13,3 +13,5 @@ from . import property_icc
 from . import property_historico
 from . import cuenta_corriente
 from . import contract_bienes_cambio
+from . import contract_payments
+from . import property_intereses

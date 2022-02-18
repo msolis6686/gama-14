@@ -99,19 +99,11 @@ class contract(models.Model):
         comodel_name='real.estate.bienes.cambio',
         inverse_name='contract_id',
         string='Productos')
-
-    """ @api.onchange('interest')
-    def calc_interest(self):
-        print('INTERES')
-        temp_val = self.total_without_down_payment + self.total_without_down_payment*self.interest/100
-        self.total_without_down_payment = temp_val
-
-    @api.onchange('icc')
-    def calc_icc(self):
-        print('ICC')
-        if self.currency.id == 19:
-            temp_val = self.total_without_down_payment + self.total_without_down_payment*self.icc/100
-            self.total_without_down_payment = temp_val """
+    contract_payments = fields.One2many(
+        comodel_name='account.payment',
+        inverse_name='contract_o2m_rel',
+        string='Pagos'
+    )
     
     @api.onchange('currency')
     def calc_icc(self):
